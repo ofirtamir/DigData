@@ -1,0 +1,121 @@
+-- a. Create a table MediaItems
+CREATE TABLE MediaItems (
+    MID BIGINT IDENTITY(1,1) PRIMARY KEY,
+    TITLE NVARCHAR(255),
+    PROD_YEAR INT
+    TITLE_LENGTH BIGINT
+);
+
+-- b. Create a table Similarity
+
+CREATE TABLE Similarity (
+    MID1 BIGINT,
+    MID2 BIGINT,
+    SIMILARITY REAL,
+    PRIMARY KEY (MID1, MID2),
+    FOREIGN KEY (MID1) REFERENCES MediaItems(MID),
+    FOREIGN KEY (MID2) REFERENCES MediaItems(MID)
+);
+
+
+
+-- c. Create a trigger AutoIncrement
+CREATE TRIGGER AutoIncrement
+ON MediaItems
+INSTEAD OF INSERT
+AS
+BEGIN
+    -- Declare a variable to store the last MID value
+    DECLARE @LastMID BIGINT;
+
+    -- Get the maximum MID from the MediaItems table (or -1 if empty)
+    SELECT @LastMID = COALESCE(MAX(MID), -1) FROM MediaItems;
+
+    -- Insert the new rows into MediaItems with the correct MID and TITLE_LENGTH
+    INSERT INTO MediaItems (MID, TITLE, PROD_YEAR, TITLE_LENGTH)
+    SELECT
+        @LastMID + ROW_NUMBER() OVER (ORDER BY (SELECT NULL)),   -- Generate MID
+        TITLE,                                                  -- Use the TITLE from the inserted row
+        PROD_YEAR,                                              -- Use the PROD_YEAR from the inserted row
+        LEN(TITLE)                                              -- Calculate TITLE_LENGTH using LEN
+    FROM inserted;                                             -- Use the inserted rows
+END;
+
+
+-- d. Create the MSSQL function MaximalDistance 
+CREATE FUNCTION MaximalDistance()
+RETURNS BIGINT
+AS
+BEGIN
+    DECLARE @maxDistance BIGINT;
+
+    -- Calculate the maximal distance between all pairs of production years
+    SELECT @maxDistance = MAX(ABS(a.PROD_YEAR - b.PROD_YEAR))
+    FROM MediaItems a
+    CROSS JOIN MediaItems b
+    WHERE a.MID <> b.MID; -- Avoid comparing the same item to itself
+
+    RETURN @maxDistance;
+END;
+
+
+
+-- e. Create an MSSQL function SimCalculation which calculates the similarity between 2 media items
+CREATE FUNCTION SimCalculation (
+    @MID1 BIGINT,
+    @MID2 BIGINT,
+    @maximal_distance BIGINT
+)
+RETURNS REAL
+AS
+BEGIN
+    DECLARE @similarity REAL;
+    DECLARE @distance BIGINT;
+
+    -- Calculate the distance between the two media items
+    SELECT @distance = ABS(a.PROD_YEAR - b.PROD_YEAR)
+    FROM MediaItems a, MediaItems b
+    WHERE a.MID = @MID1 AND b.MID = @MID2;
+
+    -- Calculate similarity: 1 - (distance / maximal_distance)
+    IF @maximal_distance > 0
+        SET @similarity = 1 - (CAST(@distance AS REAL) / @maximal_distance);
+    ELSE
+        SET @similarity = 0; -- Avoid division by zero
+
+    RETURN @similarity;
+END;
+
+
+
+-- f. Create a stored procedure AddSummaryItems
+CREATE PROCEDURE AddSummaryItems
+AS
+BEGIN
+    -- Temporary table to store production years and counts
+    CREATE TABLE #YearCounts (
+        PROD_YEAR BIGINT,
+        ItemCount BIGINT
+    );
+
+    -- Populate the temporary table with production years and their item counts
+    INSERT INTO #YearCounts (PROD_YEAR, ItemCount)
+    SELECT
+        PROD_YEAR,
+        COUNT(*) AS ItemCount
+    FROM MediaItems
+    GROUP BY PROD_YEAR
+    HAVING COUNT(*) > 1; -- Include only years with more than 1 item
+
+    -- Insert summary items into MediaItems for each year with multiple items
+    INSERT INTO MediaItems (TITLE, PROD_YEAR)
+    SELECT
+        CONCAT(ItemCount, ' items in ', PROD_YEAR) AS TITLE, -- Title format
+        PROD_YEAR -- Same production year
+    FROM #YearCounts;
+
+    -- Drop the temporary table
+    DROP TABLE #YearCounts;
+END;
+
+
