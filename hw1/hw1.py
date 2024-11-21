@@ -169,4 +169,5 @@ class DatabaseManager:
 
     def add_summary_items(self) -> None:
         self.cursor.execute("EXEC AddSummaryItems")
+        
         self.conn.commit()
