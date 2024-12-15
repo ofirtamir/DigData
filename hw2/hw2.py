@@ -94,20 +94,19 @@ class UserRepository(Repository):
    
     def validateUser(self, session, username: str, password: str) -> bool:
         # Query the user from the database by username
-        return True
-        # user = session.query(self.model_class).filter_by(id=username).first()
-        # if not user:
-        #     return False
+        user = session.query(self.model_class).filter_by(id=username).first()
+        if not user:
+            return False
 
-        # # Compare the hashed password in the database with the provided password
-        # return bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8'))
+        # Compare the hashed password in the database with the provided password
+        return bcrypt.checkpw(password.encode('utf-8'), user.password)
 
     def getNumberOfRegistredUsers(self, session, n: int) -> int:
         # Calculate the cutoff date
         cutoff_date = datetime.now() - timedelta(days=n)
 
         # Count the number of users registered in the past n days
-        count = session.query(func.count(self.model_class.id)).filter(self.model_class.created_at >= cutoff_date).scalar()
+        count = session.query(func.count(self.model_class.id)).filter(self.model_class.registration_date >= cutoff_date).scalar()
         return count
     
 class ItemRepository(Repository):
@@ -130,7 +129,7 @@ class UserService:
         self.session.commit()
 
     def add_history_to_user(self, username, media_item_id):
-        user = UserRepository.get_by_id(self.session, username)
+        user = self.user_repo.get_by_id(self.session, username)
         if user:
             user.add_history(media_item_id)
             self.session.commit()
@@ -138,20 +137,20 @@ class UserService:
             raise ValueError("User not found")
 
     def validateUser(self, username: str, password: str) -> bool:
-        return UserRepository.validateUser(self.session, username, password)
+        return self.user_repo.validateUser(self.session, username, password)
 
     def getNumberOfRegistredUsers(self, n: int) -> int:
-        return UserRepository.getNumberOfRegistredUsers(self.session,n)
+        return self.user_repo.getNumberOfRegistredUsers(self.session,n)
     
     def sum_title_length_to_user(self, username):
-        user = UserRepository.get_by_id(self.session, username)
+        user = self.user_repo.get_by_id(self.session, username)
         if user:
             return user.sum_title_length()
         else:
             raise ValueError("User not found")
 
     def get_all_users(self):
-        return UserRepository.get_all(self.session)
+        return self.user_repo.get_all(self.session)
     
 class ItemService:
     def __init__(self, session, item_repo:ItemRepository):
@@ -160,7 +159,7 @@ class ItemService:
 
     def create_item(self, title, prod_year):
         item = MediaItem(title,prod_year)
-        ItemRepository.add(item)
+        self.item_repo.add(item)
         self.session.commit()
 
 # username='ChenFryd'
