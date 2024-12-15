@@ -41,19 +41,32 @@ class TestHW2(unittest.TestCase):
         # Drop all tables after the tests to clean up the database schema
         Base.metadata.drop_all(cls.engine)
 
-    # ------------ Tests for Repositories ------------
+    # ------------ Tests for Entities ------------
     # tests for User
 
     def test_create_user(self):
-        User(username="test_user", password="password123", first_name="John", last_name="Doe", date_of_birth=datetime(1990, 1, 1))
+        User(username="test_user", password="password123", first_name="John", last_name="Doe", date_of_birth=datetime(1990, 1, 1), registration_date=datetime.now())
 
     def test_user_add_history(self):
-        # TODO
-        pass
+        user = User(username="test_user", password="password123", first_name="John", last_name="Doe", date_of_birth=datetime(1990, 1, 1), registration_date=datetime.now())
+        mediaItem = MediaItem(title="Test Movie", prod_year=2022)
+        self.session.add(user)
+        self.session.add(mediaItem)
+        self.session.commit()
+        user.add_history(mediaItem.id)
+        self.assertEqual(len(user.histories), 1)
 
     def test_user_sum_title_length(self):
-        # TODO
-        pass
+        user = User(username="test_user", password="password123", first_name="John", last_name="Doe", date_of_birth=datetime(1990, 1, 1), registration_date=datetime.now())
+        mediaItem = MediaItem(title="Test Movie", prod_year=2022)
+        self.session.add(user)
+        self.session.add(mediaItem)
+        self.session.commit()
+        user.add_history(mediaItem.id)
+        self.assertEqual(user.sum_title_length(), 10)
+        history2 = History(user_id="test_user", media_item_id="Test Movie2", viewtime=datetime.now())
+        user.add_history(history2.id)
+        self.assertEqual(user.sum_title_length(), 21)
 
     # test for MediaItem
 
@@ -69,8 +82,7 @@ class TestHW2(unittest.TestCase):
     # tests for User Repository
 
     def test_user_repository_validate_user(self):
-        #TODO
-        pass
+        # No need as it is already tested in the User Service tests
 
     def test_user_repository_get_number_of_registred_users(self):
         #TODO
@@ -99,8 +111,22 @@ class TestHW2(unittest.TestCase):
         self.assertEqual(user.first_name, "John")
 
     def test_add_history_to_user(self):
-        #TODO
-        pass
+        self.user_service.create_user(
+            username="test_user1",
+            password="password123",
+            first_name="John",
+            last_name="Doe",
+            date_of_birth=datetime(1990, 1, 1)
+        )
+
+        mediaItem = MediaItem(title="Test Movie", prod_year=2022)
+        self.session.add(mediaItem)
+        self.session.commit()
+        self.user_service.add_history_to_user("test_user1", mediaItem.id)
+
+        user = self.session.query(User).filter_by(id="test_user1").first()
+        self.assertIsNotNone(user)
+        self.assertEqual(len(user.histories), 1)
 
     def test_validate_user(self):
         self.user_service.create_user(

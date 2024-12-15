@@ -16,31 +16,38 @@ class User(Base):
     last_name = Column(String, nullable=False)
     date_of_birth = Column(DateTime, nullable=False)
     registration_date = Column( DateTime, default=datetime.utcnow, nullable=False)
-    histories = relationship("History", back_populates="user")
+    histories = relationship("History", back_populates="user", cascade="all, delete-orphan")
 
 
-    def __init__(self, username, password, first_name, last_name, date_of_birth):
+    def __init__(
+        self,
+        username,
+        password,
+        first_name,
+        last_name,
+        date_of_birth,
+        registration_date,
+    ):
         self.id = username
         self.password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         self.first_name = first_name
         self.last_name = last_name
         self.date_of_birth = date_of_birth
-        self.registration_date = datetime.now()
+        self.registration_date = registration_date
 
     def add_history(self, media_item_id):
-        session = Session.object_session(self)
-        if session is None:
-            raise RuntimeError("User is not bound to a session.")
-
         history = History(
-            user_id=self.id, media_item_id=media_item_id, viewtime=datetime.now(datetime.timezone.utc)
+            user_id=self.id, media_item_id=media_item_id, viewtime=datetime.now()
         )
-        session.add(history)
-        session.commit()
+        self.histories.append(history)
 
     def sum_title_length(self):
-        total_length = sum(history.mediaitem.title_length for history in self.histories if history.mediaitem)
+        total_length = 0
+        for history in self.histories:
+            if history.mediaitem.title_length:
+                total_length += history.mediaitem.title_length
         return total_length
+
 
 
 class MediaItem(Base):
@@ -51,10 +58,12 @@ class MediaItem(Base):
     prod_year = Column(Integer, nullable=False)
     title_length = Column(Integer, nullable=False)
 
+    histories = relationship("History", back_populates="mediaitem", cascade="all, delete-orphan")  # Fixed cascade behavior
+
     def __init__(self, title, prod_year):   
         self.title = title
         self.prod_year = prod_year
-        self.title_length = len(title)
+        self.title_length = len(title) 
 
 class History(Base):
     __tablename__ = "History"
@@ -62,15 +71,17 @@ class History(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String(255), ForeignKey("Users.id"), nullable=False)
     media_item_id = Column(Integer, ForeignKey("MediaItems.id"), nullable=False)
-    viewtime =  Column( DateTime, default=datetime.utcnow, nullable=False)
+    viewtime = Column( DateTime, default=datetime.utcnow, nullable=False)
 
     user = relationship("User", back_populates="histories")
-    mediaitem = relationship("MediaItem")
+    mediaitem = relationship("MediaItem", back_populates="histories")
 
-    def __init__(self, user_id, media_item_id, viewtime):
+    def __init__(self, user_id, media_item_id, viewtime):   
         self.user_id = user_id
         self.media_item_id = media_item_id
         self.viewtime = viewtime
+        self.mediaitem = None
+        self.user = None
 
 class Repository:
     def __init__(self, model_class):
@@ -124,7 +135,7 @@ class UserService:
         self.session = session
 
     def create_user(self, username, password, first_name, last_name, date_of_birth):
-        user = User(username,password,first_name,last_name,date_of_birth)
+        user = User(username,password,first_name,last_name,date_of_birth,datetime.now())
         self.user_repo.add(self.session, user)
         self.session.commit()
 
