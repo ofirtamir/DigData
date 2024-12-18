@@ -12,13 +12,16 @@ class TestHW2(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
-        # Set up the session class but do not create the in-memory database yet
-        cls.engine = create_engine("sqlite:///:memory:")  # In-memory database for each test
+        username='ChenFryd'
+        password='K2pZg9go'
+        connection_string = f"mssql+pyodbc://{username}:{password}@132.72.64.124/{username}?driver=ODBC+Driver+17+for+SQL+Server"
+        cls.engine = create_engine(connection_string)  # In-memory database for each test
         cls.Session = sessionmaker(bind=cls.engine)
+        Base.metadata.create_all(cls.engine)
 
     def setUp(self):
         # Create a fresh schema for each test to ensure no data from previous tests exists
-        Base.metadata.create_all(self.engine)
+
         
         # Create a fresh session for each test to avoid data retention across tests
         self.session = self.Session()
@@ -49,7 +52,7 @@ class TestHW2(unittest.TestCase):
 
     def test_user_add_history(self):
         user = User(username="test_user", password="password123", first_name="John", last_name="Doe", date_of_birth=datetime(1990, 1, 1), registration_date=datetime.now())
-        mediaItem = MediaItem(title="Test Movie", prod_year=2022)
+        mediaItem = MediaItem(title="Test Movie", prod_year=2022, title_length=len("Test Movie"))
         self.session.add(user)
         self.session.add(mediaItem)
         self.session.commit()
@@ -58,7 +61,7 @@ class TestHW2(unittest.TestCase):
 
     def test_user_sum_title_length(self):
         user = User(username="test_user", password="password123", first_name="John", last_name="Doe", date_of_birth=datetime(1990, 1, 1), registration_date=datetime.now())
-        mediaItem = MediaItem(title="Test Movie", prod_year=2022)
+        mediaItem = MediaItem(title="Test Movie", prod_year=2022, title_length=len("Test Movie"))
         self.session.add(user)
         self.session.add(mediaItem)
         self.session.commit()
@@ -71,7 +74,7 @@ class TestHW2(unittest.TestCase):
     # test for MediaItem
 
     def test_create_media_item(self):
-        MediaItem(title="Test Movie", prod_year=2022)
+        MediaItem(title="Test Movie", prod_year=2022, title_length=len("Test Movie"))
 
     # test for History
 
@@ -83,6 +86,7 @@ class TestHW2(unittest.TestCase):
 
     def test_user_repository_validate_user(self):
         # No need as it is already tested in the User Service tests
+        pass
 
     def test_user_repository_get_number_of_registred_users(self):
         #TODO
@@ -119,7 +123,7 @@ class TestHW2(unittest.TestCase):
             date_of_birth=datetime(1990, 1, 1)
         )
 
-        mediaItem = MediaItem(title="Test Movie", prod_year=2022)
+        mediaItem = MediaItem(title="Test Movie", prod_year=2022, title_length=len("Test Movie"))
         self.session.add(mediaItem)
         self.session.commit()
         self.user_service.add_history_to_user("test_user1", mediaItem.id)

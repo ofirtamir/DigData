@@ -7,6 +7,10 @@ from sqlalchemy.orm import Session
 
 Base = declarative_base()
 
+# username='ChenFryd'
+# password='K2pZg9go'
+# connection_string = f"mssql+pyodbc://{username}:{password}@132.72.64.124/{username}?driver=ODBC+Driver+17+for+SQL+Server"
+# engine = create_engine(connection_string)
 
 class User(Base):
     __tablename__ = "Users"
@@ -16,7 +20,7 @@ class User(Base):
     last_name = Column(String, nullable=False)
     date_of_birth = Column(DateTime, nullable=False)
     registration_date = Column( DateTime, default=datetime.utcnow, nullable=False)
-    histories = relationship("History", back_populates="user", cascade="all, delete-orphan")
+    histories = relationship("History", back_populates="user") #, cascade="all, delete-orphan"
 
 
     def __init__(
@@ -58,12 +62,10 @@ class MediaItem(Base):
     prod_year = Column(Integer, nullable=False)
     title_length = Column(Integer, nullable=False)
 
-    histories = relationship("History", back_populates="mediaitem", cascade="all, delete-orphan")  # Fixed cascade behavior
-
-    def __init__(self, title, prod_year):   
+    def __init__(self, title, prod_year, title_length):   
         self.title = title
         self.prod_year = prod_year
-        self.title_length = len(title) 
+        self.title_length = title_length
 
 class History(Base):
     __tablename__ = "History"
@@ -71,17 +73,17 @@ class History(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String(255), ForeignKey("Users.id"), nullable=False)
     media_item_id = Column(Integer, ForeignKey("MediaItems.id"), nullable=False)
-    viewtime = Column( DateTime, default=datetime.utcnow, nullable=False)
+    viewtime = Column( DateTime, nullable=False) #, default=datetime.utcnow
 
     user = relationship("User", back_populates="histories")
-    mediaitem = relationship("MediaItem", back_populates="histories")
+    mediaitem = relationship("MediaItem") #, back_populates="histories"
 
     def __init__(self, user_id, media_item_id, viewtime):   
         self.user_id = user_id
         self.media_item_id = media_item_id
         self.viewtime = viewtime
-        self.mediaitem = None
-        self.user = None
+        # self.mediaitem = None
+        # self.user = None
 
 class Repository:
     def __init__(self, model_class):
@@ -165,17 +167,14 @@ class UserService:
     
 class ItemService:
     def __init__(self, session, item_repo:ItemRepository):
-        self.item_repo=item_repo
+        self.item_repo = item_repo
         self.session = session
 
     def create_item(self, title, prod_year):
-        item = MediaItem(title,prod_year)
-        self.item_repo.add(item)
+        item = MediaItem(title,prod_year,len(title))
+        self.item_repo.add(self.session,item)
         self.session.commit()
 
-# username='ChenFryd'
-# password='K2pZg9go'
-# connection_string = f"mssql+pyodbc://{username}:{password}@132.72.64.124/{username}?driver=ODBC+Driver+17+for+SQL+Server"
-# engine = create_engine(connection_string)
+
 # Base.metadata.create_all(engine)
 # session = sessionmaker(bind=engine)()
