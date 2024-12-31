@@ -73,7 +73,7 @@ if __name__ == "__main__":
         print("Name recommendations:", name_recommendations)
 
         # Test finding top-rated games
-        top_rated = db_manager.find_top_rated_games(5)
+        top_rated = db_manager.find_top_rated_games(9)
         print("Top-rated games:", top_rated)
 
         # Test decrementing scores for a specific platform

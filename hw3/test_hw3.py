@@ -23,7 +23,7 @@ class TestLoginManager(unittest.TestCase):
         # Clean up the users collection before each test
         self.users_collection.delete_many({})
         self.games_collection.delete_many({})
-        pass
+
 
     def test_register_user_success(self):
         self.login_manager.register_user("testuser", "password123")

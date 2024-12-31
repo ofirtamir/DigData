@@ -63,9 +63,9 @@ class LoginManager:
 
 class DBManager:
 
-    def __init__(self, client=None):
+    def __init__(self):
         # MongoDB connection
-        self.client = client or pymongo.MongoClient("mongodb://localhost:27017/")
+        self.client =  pymongo.MongoClient("mongodb://localhost:27017/")
         self.db = self.client["hw3"]
         self.user_collection = self.db["users"]
         self.game_collection = self.db["games"]
@@ -205,9 +205,16 @@ class DBManager:
 
 
     def find_top_rated_games(self, min_score: float) -> list:
-        # Query to find games with user_score >= min_score
+        # Query to find games with user_score as string and compare as numbers
         top_games = list(self.game_collection.find(
-            {"user_score": {"$gte": min_score}},
+            {
+                "$expr": {
+                    "$gte": [
+                        {"$toDouble": "$user_score"},  # Convert user_score to double
+                        min_score
+                    ]
+                }
+            },
             {"title": 1, "user_score": 1, "_id": 0}
         ))
 
