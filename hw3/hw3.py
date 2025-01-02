@@ -63,12 +63,13 @@ class LoginManager:
 
 class DBManager:
 
-    def __init__(self):
+    def __init__(self) -> None:
         # MongoDB connection
         self.client =  pymongo.MongoClient("mongodb://localhost:27017/")
         self.db = self.client["hw3"]
         self.user_collection = self.db["users"]
         self.game_collection = self.db["games"]
+        
     def load_csv(self) -> None:
         # Open the CSV file
         with open("NintendoGames.csv", "r", encoding="utf-8") as csv_file:
@@ -204,7 +205,7 @@ class DBManager:
         return recommendations
 
 
-    def find_top_rated_games(self, min_score: float) -> list:
+    def find_top_rated_games(self, min_score) -> list:
         # Query to find games with user_score as string and compare as numbers
         top_games = list(self.game_collection.find(
             {
@@ -221,7 +222,7 @@ class DBManager:
         return top_games
 
 
-    def decrement_scores(self, platform_name: str) -> None:
+    def decrement_scores(self, platform_name) -> None:
         # Update user scores for the specified platform
         self.game_collection.update_many(
             {"platform": platform_name, "user_score": {"$gt": 0}},
