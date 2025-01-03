@@ -5,8 +5,6 @@ import pandas as pd
 import random
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import csv
-import ast
 
 
 class LoginManager:
@@ -69,23 +67,21 @@ class DBManager:
         self.db = self.client["hw3"]
         self.user_collection = self.db["users"]
         self.game_collection = self.db["games"]
-        
+
     def load_csv(self) -> None:
         # Open the CSV file
         with open("NintendoGames.csv", "r", encoding="utf-8") as csv_file:
-            csv_reader = csv.DictReader(csv_file)
+            data = pd.read_csv("NintendoGames.csv")
 
-            for row in csv_reader:
-                # Convert genres field to a list
-                row["genres"] = ast.literal_eval(row["genres"])
-                
-                # Add "is_rented" field with the default value False
-                row["is_rented"] = False
-                
-                # Check if the game already exists in the collection
-                if not self.game_collection.find_one({"title": row["title"]}):
-                    # Insert the game into the collection
-                    self.game_collection.insert_one(row)
+            data["genres"] = data["genres"].apply(ast.literal_eval)
+            data["is_rented"] = False
+            
+            records = data.to_dict(orient="records")
+            
+            # Insert records into games collection without duplicates
+            for record in records:
+                if not self.game_collection.find_one({"title": record["title"]}):
+                    self.game_collection.insert_one(record)
 
     def rent_game(self, user: dict, game_title: str) -> str:
         # Find the game by title
@@ -113,6 +109,7 @@ class DBManager:
 
     def return_game(self, user: dict, game_title: str) -> str:
         # Find the game by title
+        #TODO:1. Get the list of games ids rented by the user from the user object.
         game = self.game_collection.find_one({"title": game_title})
         
         if not game:
@@ -139,7 +136,7 @@ class DBManager:
         # Retrieve rented games by the user
         rented_games_ids = user.get("rented_games", [])
         if not rented_games_ids:
-            return "No games rented"
+            return ["No games rented"]
 
         rented_games = list(self.game_collection.find({"_id": {"$in": rented_games_ids}}))
         
@@ -173,7 +170,7 @@ class DBManager:
         # Retrieve rented games by the user
         rented_games_ids = user.get("rented_games", [])
         if not rented_games_ids:
-            return "No games rented"
+            return ["No games rented"]
 
         rented_games = list(self.game_collection.find({"_id": {"$in": rented_games_ids}}))
         
@@ -206,6 +203,7 @@ class DBManager:
 
 
     def find_top_rated_games(self, min_score) -> list:
+        #min_score is a double
         # Query to find games with user_score as string and compare as numbers
         top_games = list(self.game_collection.find(
             {
