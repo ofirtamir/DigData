@@ -80,7 +80,7 @@ class TestLoginManager(unittest.TestCase):
         self.games_collection.delete_many({})
 
         # Run the function
-        db_manager = DBManager(client=self.client)  # Pass shared client
+        db_manager = DBManager()  # Pass shared client
         db_manager.load_csv()
 
         # Check if data was loaded
@@ -98,7 +98,7 @@ class TestLoginManager(unittest.TestCase):
             self.assertFalse(game["is_rented"])
 
     def test_load_csv_no_duplicates(self):
-        db_manager = DBManager(client=self.client)  # Pass shared client
+        db_manager = DBManager()  # Pass shared client
         db_manager.load_csv()
         initial_count = self.games_collection.count_documents({})
 
@@ -119,7 +119,7 @@ class TestLoginManager(unittest.TestCase):
         # Rent the game
         user_from_db = self.users_collection.find_one({"username": "testuser"})
         game_title = "Pikmin 4"
-        db_manager = DBManager(client=self.client)
+        db_manager = DBManager()
         result = db_manager.rent_game(user_from_db, game_title)
 
         self.assertEqual(result, "Pikmin 4 rented successfully")
@@ -138,7 +138,7 @@ class TestLoginManager(unittest.TestCase):
         # Try to rent the already rented game
         user_from_db = self.users_collection.find_one({"username": "testuser"})
         game_title = "Pikmin 4"
-        db_manager = DBManager(client=self.client)
+        db_manager = DBManager()
         result = db_manager.rent_game(user_from_db, game_title)
 
         self.assertEqual(result, "Pikmin 4 is already rented")
@@ -151,7 +151,7 @@ class TestLoginManager(unittest.TestCase):
         # Try to rent a non-existing game
         user_from_db = self.users_collection.find_one({"username": "testuser"})
         game_title = "Nonexistent Game"
-        db_manager = DBManager(client=self.client)
+        db_manager = DBManager()
         result = db_manager.rent_game(user_from_db, game_title)
 
         self.assertEqual(result, "Nonexistent Game not found")
@@ -172,7 +172,7 @@ class TestLoginManager(unittest.TestCase):
         # Return the game
         user_from_db = self.users_collection.find_one({"username": "testuser"})
         game_title = "Pikmin 4"
-        db_manager = DBManager(client=self.client)
+        db_manager = DBManager()
         result = db_manager.return_game(user_from_db, game_title)
 
         self.assertEqual(result, "Pikmin 4 returned successfully")
@@ -191,7 +191,7 @@ class TestLoginManager(unittest.TestCase):
         # Try to return the game
         user_from_db = self.users_collection.find_one({"username": "testuser"})
         game_title = "Pikmin 4"
-        db_manager = DBManager(client=self.client)
+        db_manager = DBManager()
         result = db_manager.return_game(user_from_db, game_title)
 
         self.assertEqual(result, "Pikmin 4 was not rented by you")
@@ -221,7 +221,7 @@ class TestLoginManager(unittest.TestCase):
 
         # Recommend games
         user_from_db = self.users_collection.find_one({"username": "testuser"})
-        db_manager = DBManager(client=self.client)
+        db_manager = DBManager()
         recommendations = db_manager.recommend_games_by_genre(user_from_db)
 
         # print(f"Recommendations: {recommendations}")  # Debugging
@@ -234,10 +234,10 @@ class TestLoginManager(unittest.TestCase):
         self.users_collection.insert_one(user)
 
         user_from_db = self.users_collection.find_one({"username": "testuser"})
-        db_manager = DBManager(client=self.client)
+        db_manager = DBManager()
         recommendations = db_manager.recommend_games_by_genre(user_from_db)
 
-        self.assertEqual(recommendations, "No games rented")
+        self.assertEqual(recommendations, ["No games rented"])
 
     def test_recommend_games_by_name_success(self):
         # Add a user and rented games
@@ -264,7 +264,7 @@ class TestLoginManager(unittest.TestCase):
 
         # Recommend games
         user_from_db = self.users_collection.find_one({"username": "testuser"})
-        db_manager = DBManager(client=self.client)
+        db_manager = DBManager()
         recommendations = db_manager.recommend_games_by_name(user_from_db)
 
         self.assertGreater(len(recommendations), 0)
@@ -276,10 +276,10 @@ class TestLoginManager(unittest.TestCase):
         self.users_collection.insert_one(user)
 
         user_from_db = self.users_collection.find_one({"username": "testuser"})
-        db_manager = DBManager(client=self.client)
+        db_manager = DBManager()
         recommendations = db_manager.recommend_games_by_name(user_from_db)
 
-        self.assertEqual(recommendations, "No games rented")
+        self.assertEqual(recommendations, ["No games rented"])
 
     def test_find_top_rated_games_success(self):
         # Add sample games
@@ -292,7 +292,7 @@ class TestLoginManager(unittest.TestCase):
         self.games_collection.insert_many(games)
 
         # Find games with user_score >= 8.0
-        db_manager = DBManager(client=self.client)
+        db_manager = DBManager()
         top_games = db_manager.find_top_rated_games(8.0)
 
         self.assertEqual(len(top_games), 2)
@@ -308,7 +308,7 @@ class TestLoginManager(unittest.TestCase):
         self.games_collection.insert_many(games)
 
         # Find games with user_score >= 8.0
-        db_manager = DBManager(client=self.client)
+        db_manager = DBManager()
         top_games = db_manager.find_top_rated_games(8.0)
 
         self.assertEqual(len(top_games), 0)
@@ -323,7 +323,7 @@ class TestLoginManager(unittest.TestCase):
         self.games_collection.insert_many(games)
 
         # Decrement scores for "Nintendo Switch"
-        db_manager = DBManager(client=self.client)
+        db_manager = DBManager()
         db_manager.decrement_scores("Nintendo Switch")
 
         # Verify scores were decremented
@@ -347,7 +347,7 @@ class TestLoginManager(unittest.TestCase):
         self.games_collection.insert_many(games)
 
         # Calculate average scores
-        db_manager = DBManager(client=self.client)
+        db_manager = DBManager()
         averages = db_manager.get_average_score_per_platform()
 
         # Validate results
@@ -365,7 +365,7 @@ class TestLoginManager(unittest.TestCase):
         self.games_collection.insert_many(games)
 
         # Calculate genres distribution
-        db_manager = DBManager(client=self.client)
+        db_manager = DBManager()
         distribution = db_manager.get_genres_distribution()
 
         # Validate the distribution

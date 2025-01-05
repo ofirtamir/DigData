@@ -36,7 +36,7 @@ class LoginManager:
         self.collection.insert_one({
             "username": username,
             "password": hashed_password.decode(),  # Decode to save as a string
-            "rented_games": []  # Initialize rented games as an empty list
+            "rented_games_ids": []  # Initialize rented games as an empty list
         })
         
 
@@ -101,8 +101,9 @@ class DBManager:
         # Update the user's rented games list
         self.user_collection.update_one(
             {"_id": user["_id"]},
-            {"$push": {"rented_games": game["_id"]}}
+            {"$push": {"rented_games_ids": game["_id"]}}
         )
+        user["rented_games_ids"].append(game["_id"])
         
         return f"{game_title} rented successfully"
 
@@ -114,8 +115,8 @@ class DBManager:
         
         if not game:
             return f"{game_title} was not rented by you"
-        
-        if game["_id"] not in user.get("rented_games", []):
+            
+        if game["_id"] not in user.get("rented_games_ids", []):
             return f"{game_title} was not rented by you"
         
         # Update the game to mark it as not rented
@@ -126,15 +127,15 @@ class DBManager:
         # Update the user's rented games list
         self.user_collection.update_one(
             {"_id": user["_id"]},
-            {"$pull": {"rented_games": game["_id"]}}
+            {"$pull": {"rented_games_ids": game["_id"]}}
         )
-        
+        user["rented_games_ids"].remove(game["_id"])
         return f"{game_title} returned successfully"
 
 
     def recommend_games_by_genre(self, user: dict) -> list:
         # Retrieve rented games by the user
-        rented_games_ids = user.get("rented_games", [])
+        rented_games_ids = user.get("rented_games_ids", [])
         if not rented_games_ids:
             return ["No games rented"]
 
@@ -168,7 +169,7 @@ class DBManager:
 
     def recommend_games_by_name(self, user: dict) -> list:
         # Retrieve rented games by the user
-        rented_games_ids = user.get("rented_games", [])
+        rented_games_ids = user.get("rented_games_ids", [])
         if not rented_games_ids:
             return ["No games rented"]
 
@@ -245,7 +246,7 @@ class DBManager:
         results = list(self.game_collection.aggregate(pipeline))
         
         # Convert the results to a dictionary
-        averages = {result["_id"]: result["average_score"] for result in results}
+        averages = {result["_id"]: round(result["average_score"], 3) for result in results}
         return averages
 
 
